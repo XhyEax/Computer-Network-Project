@@ -38,7 +38,6 @@ int main()
     {
         payload_len = 46;//填充0x00至最小长度
     }
-
     //打包成帧
     int frame_len = pack_frame(da, sa, protocol_type, frame_data, payload, payload_len);
     //写入文件
