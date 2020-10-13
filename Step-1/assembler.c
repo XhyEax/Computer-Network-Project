@@ -32,7 +32,7 @@ int main()
 {
     //读取用户输入
     printf("Please input payload:\n");
-    scanf("%s", payload);
+    scanf("%[^\n]", payload);
     int payload_len = strlen(payload);
     if (payload_len < 46)
     {
