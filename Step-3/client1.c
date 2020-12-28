@@ -328,7 +328,7 @@ int main()
     //子线程监听收到的消息
     pthread_t recv_thread;
     int recv_thrd = pthread_create(&recv_thread, NULL, (void *)&recevier, NULL);
-
+    //打印地址
     printMacAddress("src mac address", src_mac_address, 6);
     printMacAddress("dst mac address", dst_mac_address, 6);
     printf("src ip address: [%s:%d]\n", src_ip, src_port);
