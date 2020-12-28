@@ -19,9 +19,23 @@ PS:由于以太网帧的fcs已被内核处理，故接收端获取不到（所�
 #### receiver
 在`step 1`的基础上，将其改为监听网卡的IP数据报。层层解包，同时检查MAC地址、IP地址、IP校验和、端口及udp校验和，最终输出payload
 
+## Step 3
+基于`step 2`，采用多线程编程，实现一个简单的聊天应用。主线程发送，子线程接收。
+
+`client1`和`client2`仅端口号不同
+### 编译运行
+```
+gcc ./client1.c -lpthread -o client1 && sudo ./client1
+```
+```
+gcc ./client2.c -lpthread -o client2 && sudo ./client2
+```
 ### 结果截图
 sender receiver：
 ![sender&receiver](img/sr.png)
 
 wireshark抓包：
 ![wireshark](img/ws.png)
+
+client1 client2:
+![client1&client2](img/cc.png)

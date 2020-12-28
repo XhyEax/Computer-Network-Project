@@ -16,7 +16,7 @@ int get_file_size(FILE *pFile)
 
 void prinfHexData(const char *name, char *buffer, int size)
 {
-    printf(name);
+    printf("%s",name);
     printf(": 0x");
     for (int i = 0; i < size; i++)
     {
