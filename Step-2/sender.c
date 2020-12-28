@@ -153,7 +153,7 @@ int main()
     //创建socket, 设置为IP协议
     if ((sd = socket(PF_PACKET, SOCK_RAW, IPPROTO_RAW)) < 0)
     {
-        perror("socket() error");
+        perror("[×]socket() error");
         exit(1);
     }
     //获取网卡index
@@ -161,7 +161,7 @@ int main()
     strcpy(ifstruct.ifr_name, interface);
     if (ioctl(sd, SIOCGIFINDEX, &ifstruct) == -1)
     {
-        perror("get interface index error");
+        perror("[×]get interface index error");
         exit(1);
     }
     //设置sockaddr_ll结构体信息

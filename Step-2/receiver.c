@@ -74,10 +74,11 @@ void unpack_segment(in_addr_t saddr, in_addr_t daddr, unsigned char *segment, in
                 // return;
             }
         }
-
+        //打印数据
+        int data_len = segment_len - header_len;
         printf("receive data:\n");
         unsigned char *payload = segment + header_len;
-        for (int i = 0; i < segment_len - header_len; i++)
+        for (int i = 0; i < data_len; i++)
             printf("%c", payload[i]);
         printf("\n");
     }
