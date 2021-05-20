@@ -1,0 +1,13 @@
+#include "net_utils.c"
+
+int main()
+{
+    char my_dst_mac_address[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    char my_src_mac_address[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    char tun_dst_mac_address[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    bind_socket(my_src_mac_address, "127.0.0.1", 2333);
+    set_dstinfo(my_dst_mac_address, "127.0.0.1", 4321);
+    //隧道路由转发
+    tun_router();
+    return 0;
+}
