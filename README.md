@@ -10,14 +10,14 @@
 `receiver`接收普通IP报文。
 ### 编译运行
 测试环境：`Ubuntu 21.04`, `CentOS 7.6`, `openEuler 20.03` (gcc 7+)
-#### 隧道
 ```
 gcc sender.c -lpthread -o sender && sudo ./sender
 gcc packer.c -lpthread -o packer && sudo ./packer
 gcc unpacker.c -lpthread -o unpacker && sudo ./unpacker
 gcc receiver.c -lpthread -o receiver && sudo ./receiver
 ```
-
+### 注意事项
+如果需要跨网段发送，则需要将目标mac地址改为网关mac（使用`arp -a`查看，第一行），同时修改目标ip地址为公网ip
 ## Tunnel-SendPacker
 基于`step 3`，将网络相关操作抽取出来，以供四个组件调用。
 实现IP in IP的隧道传输。
