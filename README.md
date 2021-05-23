@@ -5,7 +5,7 @@
 ### 实现
 与逻辑组件一致。
 `sender`发送普通IP报文至`packer`。
-`packer`解析出有效载荷后，打包成IP in IP报文，发送至`unpacker`。
+`packer`解析出净载荷后，打包成IP in IP报文，发送至`unpacker`。
 `unpacker`解包IP in IP报文后，转发至`receiver`。
 `receiver`接收普通IP报文。
 ### 编译运行
@@ -35,7 +35,7 @@ gcc tun_router.c -lpthread -o tun_router && sudo ./tun_router
 gcc tun_receiver.c -lpthread -o tun_receiver && sudo ./tun_receiver
 ```
 
-## Tunnel-MultClient
+## Tunnel-MultiClient
 基于`step 3`，编写了三个客户端互相通信的例子：`client1`发给`client2`，`client2`发给`client3`，`client3`发给`client1`
 ### 编译运行
 测试环境：Ubuntu 21.04 (gcc 7+)

@@ -305,7 +305,7 @@ void packer()
     int frame_len, payload_len;
     while ((frame_len = recvfrom(sd, frame, max_frame_size, 0, NULL, NULL)) > 0)
     {
-        // 解包得到有效载荷
+        // 解包得到净载荷
         payload_len = unpack_frame(frame, frame_len, 0);
         if (payload_len > 0)
         {
