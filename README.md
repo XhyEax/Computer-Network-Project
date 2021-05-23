@@ -3,7 +3,8 @@
 ### 组件
 逻辑组件分为`sender`, `packer`, `unpacker`, `receiver`四个部分。
 ### 实现
-与逻辑组件一致。
+与逻辑组件一致，分为四个部分。
+
 `sender`发送普通IP报文至`packer`。
 
 `packer`解析出净载荷后，打包成IP in IP报文，发送至`unpacker`。
@@ -42,7 +43,8 @@ gcc tun_receiver.c -lpthread -o tun_receiver && sudo ./tun_receiver
 ```
 
 ## Tunnel-MultiClient
-基于`step 3`，编写了三个客户端互相通信的例子：`client1`发给`client2`，`client2`发给`client3`，`client3`发给`client1`
+基于`step 3`，编写了三个客户端互相通信的例子：
+`client1`发给`client2`，`client2`发给`client3`，`client3`发给`client1`
 ### 编译运行
 测试环境：Ubuntu 21.04 (gcc 7+)
 ```
