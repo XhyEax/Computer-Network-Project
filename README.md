@@ -21,7 +21,7 @@ gcc unpacker.c -lpthread -o unpacker && sudo ./unpacker
 gcc receiver.c -lpthread -o receiver && sudo ./receiver
 ```
 ### 注意事项
-若需要跨网段发送，则需要进行一下修改：
+如果想跨网段发送，则需进行以下修改：
 
 1. 修改监听网卡名
 2. 将目标mac地址改为网关mac（使用`arp -a`查看，第一行）
