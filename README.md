@@ -1,26 +1,44 @@
 # 计网Project
-
 ## Tunnel
-基于`step 3`，将网络相关操作抽取出来，以供四个组件调用。
-实现IP in IP的隧道传输。
 ### 组件
 逻辑组件分为`sender`, `packer`, `unpacker`, `receiver`四个部分。
+### 实现
+与逻辑组件一致。
+`sender`发送普通IP报文至`packer`。
+`packer`解析出有效载荷后，打包成IP in IP报文，发送至`unpacker`。
+`unpacker`解包IP in IP报文后，转发至`receiver`。
+`receiver`接收普通IP报文。
+### 编译运行
+测试环境：`Ubuntu 21.04`, `CentOS 7.6`, `openEuler 20.03` (gcc 7+)
+#### 隧道
+```
+gcc sender.c -lpthread -o sender && sudo ./sender
+gcc packer.c -lpthread -o packer && sudo ./packer
+gcc unpacker.c -lpthread -o unpacker && sudo ./unpacker
+gcc receiver.c -lpthread -o receiver && sudo ./receiver
+```
+
+## Tunnel-SendPacker
+基于`step 3`，将网络相关操作抽取出来，以供四个组件调用。
+实现IP in IP的隧道传输。
+### 实现
 具体实现时分为三个部分：`tun_sender`, `tun_router`, `tun_receiver`
-### 内容
+
 `tun_sender`: 设置源地址，目标地址和隧道地址，将源地址和目标地址组成的IP报文作为净载荷，发送给隧道地址。（`sender` + `packer`）
 `tun_router`: 模拟互联网，将收到的IP in IP报文提取出来并重新打包，发送给`tun_receiver`
-`tun_receiver`: 只设置监听地址，接收到数据包后解包出IP in IP报文，然后调用`unpack_packet`函数解包内部报文，并输出IP地址、端口和内容（`unpacker` + `receiver`）
-
-同时编写了三个客户端互相通信的例子：`client1`发给`client2`，`client2`发给`client3`，`client3`发给`client1`
+`tun_receiver`: 只设置监听地址，接收到数据包后解包出IP in IP报文，然后调用`unpack_packet`函数解包内部报文，输出IP地址、端口和内容（`unpacker` + `receiver`）
 ### 编译运行
-测试环境：Ubuntu 21.04
-#### 隧道
+测试环境：Ubuntu 21.04 (gcc 7+)
 ```
 gcc tun_sender.c -lpthread -o tun_sender && sudo ./tun_sender
 gcc tun_router.c -lpthread -o tun_router && sudo ./tun_router
 gcc tun_receiver.c -lpthread -o tun_receiver && sudo ./tun_receiver
 ```
-#### 多客户端
+
+## Tunnel-MultClient
+基于`step 3`，编写了三个客户端互相通信的例子：`client1`发给`client2`，`client2`发给`client3`，`client3`发给`client1`
+### 编译运行
+测试环境：Ubuntu 21.04 (gcc 7+)
 ```
 gcc client1.c -lpthread -o client1 && sudo ./client1
 gcc client2.c -lpthread -o client2 && sudo ./client2
@@ -32,7 +50,7 @@ gcc client3.c -lpthread -o client3 && sudo ./client3
 
 `client1`和`client2`仅端口号不同
 ### 编译运行
-测试环境：Ubuntu 18.04 Ubuntu 21.04
+测试环境：`Ubuntu 18.04`, `Ubuntu 21.04` (gcc 7+)
 ```
 gcc ./client1.c -lpthread -o client1 && sudo ./client1
 ```
