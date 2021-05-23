@@ -5,8 +5,11 @@
 ### 实现
 与逻辑组件一致。
 `sender`发送普通IP报文至`packer`。
+
 `packer`解析出净载荷后，打包成IP in IP报文，发送至`unpacker`。
+
 `unpacker`解包IP in IP报文后，转发至`receiver`。
+
 `receiver`接收普通IP报文。
 ### 编译运行
 测试环境：`Ubuntu 21.04`, `CentOS 7.6`, `openEuler 20.03` (gcc 7+)
@@ -25,8 +28,11 @@ gcc receiver.c -lpthread -o receiver && sudo ./receiver
 具体实现时分为三个部分：`tun_sender`, `tun_router`, `tun_receiver`
 
 `tun_sender`: 设置源地址，目标地址和隧道地址，将源地址和目标地址组成的IP报文作为净载荷，发送给隧道地址。（`sender` + `packer`）
+
 `tun_router`: 模拟互联网，将收到的IP in IP报文提取出来并重新打包，发送给`tun_receiver`
+
 `tun_receiver`: 只设置监听地址，接收到数据包后解包出IP in IP报文，然后调用`unpack_packet`函数解包内部报文，输出IP地址、端口和内容（`unpacker` + `receiver`）
+
 ### 编译运行
 测试环境：Ubuntu 21.04 (gcc 7+)
 ```
