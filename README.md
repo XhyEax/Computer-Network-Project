@@ -21,7 +21,12 @@ gcc unpacker.c -lpthread -o unpacker && sudo ./unpacker
 gcc receiver.c -lpthread -o receiver && sudo ./receiver
 ```
 ### 注意事项
-如果需要跨网段发送，则需要将目标mac地址改为网关mac（使用`arp -a`查看，第一行），同时修改目标ip地址为公网ip
+若需要跨网段发送，则需要进行一下修改：
+
+1. 修改监听网卡名
+2. 将目标mac地址改为网关mac（使用`arp -a`查看，第一行）
+3. 修改目标ip地址为公网ip
+
 ## Tunnel-SendPacker
 基于`step 3`，将网络相关操作抽取出来，以供四个组件调用。
 实现IP in IP的隧道传输。
