@@ -25,18 +25,20 @@ char dst_mac_address[6];
 char listen_mac_address[6];
 char protocol_type[2] = {0x08, 0x00};
 
-char frame[max_frame_size]; //Ethernet帧(无fcs), 解包用
+unsigned char frame[max_frame_size]; //Ethernet帧(无fcs), 解包用
 //以下数组作为打包缓存区
-char ether_buffer[max_frame_size]; //Ethernet帧(无fcs)
-char ip_buffer[max_frame_size];    //IP数据报
-char udp_buffer[max_frame_size];   //UDP包
-char payload[max_frame_size];      //udp净载荷
+unsigned char ether_buffer[max_frame_size]; //Ethernet帧(无fcs)
+unsigned char ip_buffer[max_frame_size];    //IP数据报
+unsigned char ipip_buffer[max_frame_size];  //IPIP数据报
+unsigned char udp_buffer[max_frame_size];   //UDP包
+unsigned char payload[max_frame_size];      //udp净载荷
 
 // IP地址及协议类型(udp) (网络层)
 char tun_ip[20];
 char dst_ip[20];
 char listen_ip[20];
 unsigned char proto_udp = 17;
+unsigned char proto_ipip = 4;
 
 // UDP端口号(传输层)
 unsigned short tun_port;
@@ -57,6 +59,14 @@ void printHexData(const char *name, unsigned char *buffer, int size)
         }
     }
     printf("\n");
+}
+
+//IP地址转换
+in_addr_t ipConvert(char *src_ip)
+{
+    struct in_addr src_addr;
+    inet_aton(src_ip, &src_addr);
+    return src_addr.s_addr;
 }
 
 // 打印mac地址
@@ -129,7 +139,7 @@ int unpack_packet(unsigned char *packet, int packet_len, int bypass_check)
     struct in_addr saddr, daddr;
     memcpy(&saddr, &header.srcIP, sizeof(saddr));
     memcpy(&daddr, &header.dstIP, sizeof(saddr));
-    char *src_ip_str = inet_ntoa(saddr);
+    // char *src_ip_str = inet_ntoa(saddr);
     char *dst_ip_str = inet_ntoa(daddr);
 
     // printf("proto: %d\n", header.proto);
@@ -137,8 +147,9 @@ int unpack_packet(unsigned char *packet, int packet_len, int bypass_check)
     // printf("dstIP: %s\n", dst_ip_str);
 
     //检查IP和协议类型
-    int check = !strcmp(dst_ip_str, listen_ip) && header.proto == proto_udp;
-    if (bypass_check || check)
+    // UDP
+    int checkudp = !strcmp(dst_ip_str, listen_ip) && header.proto == proto_udp;
+    if (bypass_check || checkudp)
     {
         //校验checksum
         if (!bypass_check && ip_cksum((u_short *)&header, sizeof(header)) != 0)
@@ -149,11 +160,17 @@ int unpack_packet(unsigned char *packet, int packet_len, int bypass_check)
         //解包segment
         return unpack_segment(header.srcIP, header.dstIP, packet + header_len, packet_len - header_len, bypass_check);
     }
+    // IPIP
+    int checkipip = !strcmp(dst_ip_str, listen_ip) && header.proto == proto_ipip;
+    if (bypass_check || checkipip)
+    {
+        return unpack_packet(packet + header_len, packet_len - header_len, 1);
+    }
     return -1;
 }
 
 //解包帧
-int unpack_frame(char *frame, int frame_len, int bypass_check)
+int unpack_frame(unsigned char *frame, int frame_len, int bypass_check)
 {
     struct frame_header header;
     int frame_header_len = sizeof(header);
@@ -175,7 +192,7 @@ int unpack_frame(char *frame, int frame_len, int bypass_check)
 }
 
 // 打包成帧（数据链路层）
-int pack_frame(char *da, char *sa, char *protocol_type, char *buffer, char *payload, int payload_len)
+int pack_frame(char *da, char *sa, char *protocol_type, unsigned char *buffer, unsigned char *payload, int payload_len)
 {
     // 使用Raw Socket, MAC层中会自动补0到最小帧长, 故注释
     // if (payload_len < 46)
@@ -202,7 +219,7 @@ int pack_frame(char *da, char *sa, char *protocol_type, char *buffer, char *payl
 }
 
 // 打包成packet（网络层）
-int pack_packet(char *src_mac_address, char *dst_mac_address, in_addr_t sipaddr, in_addr_t dipaddr, char *buffer, char *payload, int packet_payload_len, int is_pack_ether)
+int pack_packet(char *src_mac_address, char *dst_mac_address, unsigned char proto, in_addr_t sipaddr, in_addr_t dipaddr, unsigned char *buffer, unsigned char *payload, int packet_payload_len, int is_pack_ether)
 {
     //设置header
     struct ip_header header;
@@ -214,7 +231,7 @@ int pack_packet(char *src_mac_address, char *dst_mac_address, in_addr_t sipaddr,
     header.ident = 0x61a0;
     header.frag_and_flags = 0x0040; //不分片
     header.ttl = 64;
-    header.proto = proto_udp;
+    header.proto = proto;
     header.checksum = 0;
     header.srcIP = sipaddr;
     header.dstIP = dipaddr;
@@ -236,7 +253,7 @@ int pack_packet(char *src_mac_address, char *dst_mac_address, in_addr_t sipaddr,
 }
 
 // 打包成segment（传输层）, 只计算伪首部的校验和
-int pack_segment(char *src_mac_address, char *dst_mac_address, char *src_ip, char *dst_ip, unsigned short sport, unsigned short dport, char *buffer, char *payload, int payload_len, int is_pack_ether)
+int pack_segment(char *src_mac_address, char *dst_mac_address, char *src_ip, char *dst_ip, unsigned short sport, unsigned short dport, unsigned char *buffer, unsigned char *payload, int payload_len, int is_pack_ether)
 {
     //设置header
     struct udp_header header;
@@ -246,11 +263,8 @@ int pack_segment(char *src_mac_address, char *dst_mac_address, char *src_ip, cha
     header.uh_len = htons(header_len + payload_len);
     header.uh_sum = 0;
     //IP地址转换
-    struct in_addr src_addr, dst_addr;
-    inet_aton(src_ip, &src_addr);
-    inet_aton(dst_ip, &dst_addr);
-    in_addr_t sipaddr = src_addr.s_addr;
-    in_addr_t dipaddr = dst_addr.s_addr;
+    in_addr_t sipaddr = ipConvert(src_ip);
+    in_addr_t dipaddr = ipConvert(dst_ip);
     //UDP伪首部, 用以计算校验和
     struct pseudo_header udp_pseudo_header;
     udp_pseudo_header.source_address = sipaddr;
@@ -267,7 +281,7 @@ int pack_segment(char *src_mac_address, char *dst_mac_address, char *src_ip, cha
     // printf("header.uh_sum %x\n", header.uh_sum);
     // printHexData("udp", buffer, packet_payload_len);
     //打包成IP数据报, buffer作为下一层的payload
-    return pack_packet(src_mac_address, dst_mac_address, sipaddr, dipaddr, ip_buffer, buffer, packet_payload_len, is_pack_ether);
+    return pack_packet(src_mac_address, dst_mac_address, proto_udp, sipaddr, dipaddr, ip_buffer, buffer, packet_payload_len, is_pack_ether);
 }
 
 //发送udp包
@@ -305,16 +319,18 @@ void packer()
     int frame_len, payload_len;
     while ((frame_len = recvfrom(sd, frame, max_frame_size, 0, NULL, NULL)) > 0)
     {
-        // 解包得到净载荷
+        // 解包得到有效载荷
         payload_len = unpack_frame(frame, frame_len, 0);
         if (payload_len > 0)
         {
             // 打包成IP报文
             int packet_len = pack_segment(listen_mac_address, dst_mac_address, listen_ip, dst_ip, listen_port, dst_port, udp_buffer, payload, payload_len, 0);
             // printHexData("send ip_buffer", ip_buffer, packet_len);
+            //IP地址转换
+            in_addr_t sipaddr = ipConvert(listen_ip);
+            in_addr_t dipaddr = ipConvert(dst_ip);
             // 生成以太网帧, IP in IP
-            frame_len = pack_segment(listen_mac_address, dst_mac_address, listen_ip, dst_ip, listen_port, dst_port, udp_buffer, ip_buffer, packet_len, 1);
-
+            frame_len = pack_packet(listen_mac_address, dst_mac_address, proto_ipip, sipaddr, dipaddr, ipip_buffer, ip_buffer, packet_len, 1);
             sendto(sd, ether_buffer, frame_len, 0, (const struct sockaddr *)&sll, sizeof(sll));
         }
     }
@@ -326,13 +342,11 @@ void unpacker()
     int frame_len, payload_len;
     while ((frame_len = recvfrom(sd, frame, max_frame_size, 0, NULL, NULL)) > 0)
     {
-        // 解包得到内部的IP报文
+        // 解包得到ip in ip净载荷
         payload_len = unpack_frame(frame, frame_len, 0);
         if (payload_len > 0)
         {
-            // printHexData("recv ip_buffer", payload, payload_len);
-            //解包ip in ip得到净载荷
-            payload_len = unpack_packet(payload, payload_len, 1);
+            // printHexData("recv payload", payload, payload_len);
             // 重新打包发给tun_receiver
             frame_len = pack_segment(listen_mac_address, dst_mac_address, listen_ip, dst_ip, listen_port, dst_port, udp_buffer, payload, payload_len, 1);
             sendto(sd, ether_buffer, frame_len, 0, (const struct sockaddr *)&sll, sizeof(sll));
@@ -378,8 +392,11 @@ void tun_sender()
             // 打包成IP报文
             int packet_len = pack_segment(listen_mac_address, dst_mac_address, listen_ip, dst_ip, listen_port, dst_port, udp_buffer, payload, payload_len, 0);
             // printHexData("send ip_buffer", ip_buffer, packet_len);
-            // 生成以太网帧, IP in IP (packer)
-            int frame_len = pack_segment(listen_mac_address, tun_mac_address, listen_ip, tun_ip, listen_port, tun_port, udp_buffer, ip_buffer, packet_len, 1);
+            //IP地址转换
+            in_addr_t sipaddr = ipConvert(listen_ip);
+            in_addr_t dipaddr = ipConvert(tun_ip);
+            // 生成以太网帧, IP in IP
+            int frame_len = pack_packet(listen_mac_address, tun_mac_address, proto_ipip, sipaddr, dipaddr, ipip_buffer, ip_buffer, packet_len, 1);
             sendto(sd, ether_buffer, frame_len, 0, (const struct sockaddr *)&sll, sizeof(sll));
         }
         //清空缓存区
@@ -408,25 +425,8 @@ void tun_router()
 //接收udp包，解包净载荷并输出 (隧道) unpacker + receiver
 void tun_receiver()
 {
-    int frame_len, payload_len;
-    while ((frame_len = recvfrom(sd, frame, max_frame_size, 0, NULL, NULL)) > 0)
-    {
-        // unpacker
-        payload_len = unpack_frame(frame, frame_len, 0);
-        if (payload_len > 0)
-        {
-            // printf("recv ip_in_ip");
-            // receiver
-            payload_len = unpack_packet(payload, payload_len, 1);
-            if (payload_len > 0)
-            {
-                for (int i = 0; i < payload_len; i++)
-                    printf("%c", payload[i]);
-                if (payload_len > 0)
-                    printf("\n");
-            }
-        }
-    }
+    //已处理IPIP
+    receiver();
 }
 
 // 设置监听信息 绑定socket

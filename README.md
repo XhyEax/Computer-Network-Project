@@ -5,13 +5,13 @@
 ### 实现
 与逻辑组件一致，分为四个部分。
 
-`sender`发送普通IP报文至`packer`。
+`sender`发送UDP数据报至`packer`。
 
 `packer`解析出净载荷后，打包成IP in IP报文，发送至`unpacker`。
 
 `unpacker`解包IP in IP报文后，转发至`receiver`。
 
-`receiver`接收普通IP报文。
+`receiver`接收IP报文。
 ### 编译运行
 测试环境：`Ubuntu 21.04`, `CentOS 7.6`, `openEuler 20.03` (gcc 7+)
 ```
@@ -21,7 +21,9 @@ gcc unpacker.c -lpthread -o unpacker && sudo ./unpacker
 gcc receiver.c -lpthread -o receiver && sudo ./receiver
 ```
 ### 注意事项
-如果想跨网段发送，则需进行以下修改：
+IPIP协议可能未被nat网关处理，所以`packer`和`unpacker`需要能够直接通信（如两台公网IP服务器）。
+
+跨网段发送，需进行以下修改：
 
 1. 修改监听网卡名
 2. 将目标mac地址改为网关mac（使用`arp -a`查看，第一行）
@@ -37,7 +39,7 @@ gcc receiver.c -lpthread -o receiver && sudo ./receiver
 
 `tun_router`: 模拟互联网，将收到的IP in IP报文提取出来并重新打包，发送给`tun_receiver`
 
-`tun_receiver`: 只设置监听地址，接收到数据包后解包出IP in IP报文，然后调用`unpack_packet`函数解包内部报文，输出IP地址、端口和内容（`unpacker` + `receiver`）
+`tun_receiver`: 只设置监听地址，接收到数据包后判断协议类型，若为IPIP，则再次调用`unpack_packet`函数解包内部报文，输出IP地址、端口和内容（`unpacker` + `receiver`）
 
 ### 编译运行
 测试环境：Ubuntu 21.04 (gcc 7+)
