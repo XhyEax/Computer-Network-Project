@@ -21,6 +21,8 @@ struct sockaddr_ll sll;
 char interface[10];
 // mac地址、协议类型(ip)（数据链路层）
 char tun_mac_address[6];
+char left_mac_address[6];
+char right_mac_address[6];
 char dst_mac_address[6];
 char listen_mac_address[6];
 char protocol_type[2] = {0x08, 0x00};
@@ -35,6 +37,8 @@ unsigned char payload[max_frame_size];      //udp净载荷
 
 // IP地址及协议类型(udp) (网络层)
 char tun_ip[20];
+char left_ip[20];
+char right_ip[20];
 char dst_ip[20];
 char listen_ip[20];
 unsigned char proto_udp = 17;
@@ -42,6 +46,8 @@ unsigned char proto_ipip = 4;
 
 // UDP端口号(传输层)
 unsigned short tun_port;
+unsigned short left_port;
+unsigned short right_port;
 unsigned short dst_port;
 unsigned short listen_port;
 
@@ -324,7 +330,7 @@ void packer()
         if (payload_len > 0)
         {
             // 打包成IP报文
-            int packet_len = pack_segment(listen_mac_address, dst_mac_address, listen_ip, dst_ip, listen_port, dst_port, udp_buffer, payload, payload_len, 0);
+            int packet_len = pack_segment(left_mac_address, right_mac_address, left_ip, right_ip, left_port, right_port, udp_buffer, payload, payload_len, 0);
             // printHexData("send ip_buffer", ip_buffer, packet_len);
             //IP地址转换
             in_addr_t sipaddr = ipConvert(listen_ip);
@@ -348,7 +354,7 @@ void unpacker()
         {
             // printHexData("recv payload", payload, payload_len);
             // 重新打包发给tun_receiver
-            frame_len = pack_segment(listen_mac_address, dst_mac_address, listen_ip, dst_ip, listen_port, dst_port, udp_buffer, payload, payload_len, 1);
+            frame_len = pack_segment(left_mac_address, dst_mac_address, left_ip, dst_ip, left_port, dst_port, udp_buffer, payload, payload_len, 1);
             sendto(sd, ether_buffer, frame_len, 0, (const struct sockaddr *)&sll, sizeof(sll));
         }
     }
@@ -471,26 +477,50 @@ void bind_socket(char *my_interface, char *my_src_mac_address, const char *my_sr
     printf("listen on: [%s:%d]\n", listen_ip, listen_port);
 }
 
-void set_dstinfo(char *my_dst_mac_address, char *my_dst_ip, int my_dst_port)
+void set_dstinfo(char *my_mac_address, char *my_ip, int my_port)
 {
     //mac地址 (数据链路层)
-    memcpy(dst_mac_address, my_dst_mac_address, 6);
+    memcpy(dst_mac_address, my_mac_address, 6);
     // IP地址 (网络层)
-    strcpy(dst_ip, my_dst_ip);
+    strcpy(dst_ip, my_ip);
     // UDP端口号 (传输层)
-    dst_port = my_dst_port;
+    dst_port = my_port;
     printMacAddress("dst mac address", dst_mac_address, 6);
     printf("dst ip address: [%s:%d]\n", dst_ip, dst_port);
 }
 
-void set_tuninfo(char *my_dst_mac_address, char *my_dst_ip, int my_dst_port)
+void set_tuninfo(char *my_mac_address, char *my_ip, int my_port)
 {
     //mac地址 (数据链路层)
-    memcpy(tun_mac_address, my_dst_mac_address, 6);
+    memcpy(tun_mac_address, my_mac_address, 6);
     // IP地址 (网络层)
-    strcpy(tun_ip, my_dst_ip);
+    strcpy(tun_ip, my_ip);
     // UDP端口号 (传输层)
-    tun_port = my_dst_port;
+    tun_port = my_port;
     printMacAddress("tun mac address", tun_mac_address, 6);
     printf("tun ip address: [%s:%d]\n", tun_ip, tun_port);
+}
+
+void set_leftinfo(char *my_mac_address, char *my_ip, int my_port)
+{
+    //mac地址 (数据链路层)
+    memcpy(left_mac_address, my_mac_address, 6);
+    // IP地址 (网络层)
+    strcpy(left_ip, my_ip);
+    // UDP端口号 (传输层)
+    left_port = my_port;
+    printMacAddress("left mac address", left_mac_address, 6);
+    printf("left ip address: [%s:%d]\n", left_ip, left_port);
+}
+
+void set_rightinfo(char *my_mac_address, char *my_ip, int my_port)
+{
+    //mac地址 (数据链路层)
+    memcpy(right_mac_address, my_mac_address, 6);
+    // IP地址 (网络层)
+    strcpy(right_ip, my_ip);
+    // UDP端口号 (传输层)
+    right_port = my_port;
+    printMacAddress("right mac address", right_mac_address, 6);
+    printf("right ip address: [%s:%d]\n", right_ip, right_port);
 }
