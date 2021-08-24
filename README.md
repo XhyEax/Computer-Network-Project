@@ -1,5 +1,4 @@
-# 计网Project
-## Tunnel
+## IPIP Tunnel
 ### 组件
 逻辑组件分为`sender`, `packer`, `unpacker`, `receiver`四个部分。
 ### 实现
